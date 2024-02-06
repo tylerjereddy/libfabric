@@ -46,11 +46,18 @@ AC_DEFUN([FI_CXI_CONFIGURE],[
 		[
 			AC_CHECK_HEADER(cxi_prov_hw.h,
 				[],
-				[cxi_happy=0])
+				[cxi_happy=0],
+                [AC_INCLUDES_DEFAULT
+                #include <errno.h>])
 
 			AC_CHECK_HEADER(uapi/misc/cxi.h,
 				[],
-				[cxi_happy=0])
+				[cxi_happy=0],
+                [AC_INCLUDES_DEFAULT
+                #include <stdbool.h>
+                #ifndef __user
+                #define __user
+                #endif])
 
 			FI_CHECK_PACKAGE([libcxi],
 				[libcxi/libcxi.h],
