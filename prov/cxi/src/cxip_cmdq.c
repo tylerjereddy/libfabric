@@ -132,7 +132,8 @@ int cxip_cmdq_cp_set(struct cxip_cmdq *cmdq, uint16_t vni,
 	struct cxi_cp *cp;
 	int ret;
 
-	if (cxip_cmdq_match(cmdq, vni, tc, tc_type))
+	if (cmdq->cur_cp->vni == vni && cmdq->cur_cp->tc == tc &&
+	    cmdq->cur_cp->tc_type == tc_type)
 		return FI_SUCCESS;
 
 	ret = cxip_cp_get(cmdq->lni, vni, tc, tc_type, &cp);
