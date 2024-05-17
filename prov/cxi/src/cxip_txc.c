@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "cxip.h"
 
@@ -50,7 +51,9 @@ void *cxip_txc_ibuf_alloc(struct cxip_txc *txc)
  */
 void cxip_txc_ibuf_free(struct cxip_txc *txc, void *ibuf)
 {
+    printf("[%d, %d] cxip_txc_ibuf_free() checkpoint 1 before freeing ibuf=%p\n", getpid(), gettid(), ibuf);
 	ofi_buf_free(ibuf);
+    printf("[%d, %d] cxip_txc_ibuf_free() checkpoint 2 after freeing ibuf=%p\n", getpid(), gettid(), ibuf);
 	CXIP_DBG("Freed inject buffer: %p\n", ibuf);
 }
 

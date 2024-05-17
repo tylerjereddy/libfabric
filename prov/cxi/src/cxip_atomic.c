@@ -371,6 +371,7 @@ static int _cxip_amo_cb(struct cxip_req *req, const union c_event *event)
 	int ret_err;
 	int success_event = (req->flags & FI_COMPLETION);
 	struct cxip_txc *txc = req->amo.txc;
+    printf("[%d, %d] _cxip_amo_cb() checkpoint 1 req->amo=%p\n", getpid(), gettid(), req->amo);
 
 	/* When errors happen, send events can occur before the put/get event.
 	 * These events should just be dropped.
@@ -420,13 +421,23 @@ static int _cxip_amo_cb(struct cxip_req *req, const union c_event *event)
 	}
 
 	if (req->amo.result_md)
+    {
+        printf("[%d, %d] _cxip_amo_cb() checkpoint 2 before unmap req->amo.result_md=%p\n", getpid(), gettid(), req->amo.result_md);
 		cxip_unmap(req->amo.result_md);
+    }
 
 	if (req->amo.oper1_md)
+    {
+        printf("[%d, %d] _cxip_amo_cb() checkpoint 3 before unmap req->amo.oper1_md=%p\n", getpid(), gettid(), req->amo.oper1_md);
 		cxip_unmap(req->amo.oper1_md);
+    }
 
 	if (req->amo.ibuf)
+    {
+        printf("[%d, %d] _cxip_amo_cb() checkpoint 4 before free req->amo.ibuf=%p\n", getpid(), gettid(), req->amo.ibuf);
 		cxip_txc_ibuf_free(txc, req->amo.ibuf);
+        printf("[%d, %d] _cxip_amo_cb() checkpoint 4 after free\n", getpid(), gettid());
+    }
 
 	req->flags &= (FI_ATOMIC | FI_READ | FI_WRITE);
 
@@ -450,6 +461,7 @@ static int _cxip_amo_cb(struct cxip_req *req, const union c_event *event)
 
 	ofi_atomic_dec32(&req->amo.txc->otx_reqs);
 	cxip_evtq_req_free(req);
+    printf("[%d, %d] _cxip_amo_cb() checkpoint 5 before return\n", getpid(), gettid());
 
 	return FI_SUCCESS;
 }

@@ -5,6 +5,7 @@
  */
 
 #include "cxip.h"
+#include <unistd.h>
 
 #define CXIP_DBG(...) _CXIP_DBG(FI_LOG_MR, __VA_ARGS__)
 #define CXIP_WARN(...) _CXIP_WARN(FI_LOG_MR, __VA_ARGS__)
@@ -162,6 +163,7 @@ static void cxip_do_unmap(struct ofi_mr_cache *cache,
 		return;
 
 	if (md->handle_valid)
+        printf("[%d, %d] cxip_do_unmap() checkpoint 1 before unregister of md->handle=%p\n", getpid(), gettid(), md->handle);
 		ofi_hmem_dev_unregister(entry->info.iface, md->handle);
 
 	ret = cxil_unmap(md->md);
@@ -586,15 +588,23 @@ static void cxip_unmap_cache(struct cxip_md *md)
 static void cxip_unmap_nocache(struct cxip_md *md)
 {
 	int ret;
+    printf("[%d, %d] cxip_unmap_nocache() checkpoint 1\n", getpid(), gettid());
 
 	if (md->handle_valid)
+    {
+        printf("[%d, %d] cxip_unmap_nocache() checkpoint 2 before unregister of md->handle=%p\n", getpid(), gettid(), md->handle);
 		ofi_hmem_dev_unregister(md->info.iface, md->handle);
+    }
 
+    printf("[%d, %d] cxip_unmap_nocache() checkpoint 3 before unmap\n", getpid(), gettid());
 	ret = cxil_unmap(md->md);
+    printf("[%d, %d] cxip_unmap_nocache() checkpoint 4 after unmap\n", getpid(), gettid());
 	if (ret)
 		CXIP_WARN("cxil_unmap failed: %d\n", ret);
 
+    printf("[%d, %d] cxip_unmap_nocache() checkpoint 5 before free\n", getpid(), gettid());
 	free(md);
+    printf("[%d, %d] cxip_unmap_nocache() checkpoint 6 after free\n", getpid(), gettid());
 }
 
 /*

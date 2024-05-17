@@ -43,6 +43,10 @@
 
 #include <pthread.h>
 #include <gdrapi.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/queue.h>
+
 
 struct gdrcopy_handle {
 	gdr_mh_t mh; /* memory handler */
@@ -50,6 +54,19 @@ struct gdrcopy_handle {
 	void *user_ptr; /* user space ptr mapped to GPU memory */
 	size_t length; /* page aligned length */
 };
+
+typedef enum gdr_mapping_type {
+    GDR_MAPPING_TYPE_NONE = 0,
+    GDR_MAPPING_TYPE_WC = 1,
+    GDR_MAPPING_TYPE_CACHING = 2,
+    GDR_MAPPING_TYPE_DEVICE = 3
+} gdr_mapping_type_t;
+
+typedef struct gdr_memh_t {
+    uint32_t handle;
+    LIST_ENTRY(gdr_memh_t) entries;
+    gdr_mapping_type_t mapping_type;
+} gdr_memh_t;
 
 struct gdrcopy_ops {
 	gdr_t (*gdr_open)();
@@ -72,6 +89,10 @@ enum gdrcopy_dir {
 };
 
 static gdr_t global_gdr;
+static gdr_memh_t *to_memh(gdr_mh_t mh) {
+    return (gdr_memh_t *)mh.h;
+}
+
 static pthread_spinlock_t global_gdr_lock;
 
 #if ENABLE_GDRCOPY_DLOPEN
@@ -354,10 +375,15 @@ int cuda_gdrcopy_dev_unregister(uint64_t handle)
 
 	gdrcopy = (struct gdrcopy_handle *)handle;
 	assert(gdrcopy);
+    printf("[%d, %d] cuda_gdrcopy_dev_unregister() checkpoint 1 before spin lock gdrcopy->mh=%p\n", getpid(), gettid(), gdrcopy->mh);
 
 	pthread_spin_lock(&global_gdr_lock);
+    if (to_memh(gdrcopy->mh)->mapping_type != 0)
+    {
+    printf("[%d, %d] cuda_gdrcopy_dev_unregister() checkpoint 2 after spin lock and before unmap gdrcopy->mh=%p\n", getpid(), gettid(), gdrcopy->mh);
 	err = global_gdrcopy_ops.gdr_unmap(global_gdr, gdrcopy->mh,
 					   gdrcopy->user_ptr, gdrcopy->length);
+    printf("[%d, %d] cuda_gdrcopy_dev_unregister() checkpoint 3 after unmap gdrcopy->mh=%p\n", getpid(), gettid(), gdrcopy->mh);
 	if (err) {
 		FI_WARN(&core_prov, FI_LOG_CORE,
 			"gdr_unmap failed! error: %s\n",
@@ -365,13 +391,17 @@ int cuda_gdrcopy_dev_unregister(uint64_t handle)
 		goto exit;
 	}
 
+    printf("[%d, %d] cuda_gdrcopy_dev_unregister() checkpoint 4 before unpin_buffer gdrcopy->mh=%p\n", getpid(), gettid(), gdrcopy->mh);
 	err = global_gdrcopy_ops.gdr_unpin_buffer(global_gdr, gdrcopy->mh);
+    printf("[%d, %d] cuda_gdrcopy_dev_unregister() checkpoint 4 after unpin_buffer gdrcopy->mh=%p\n", getpid(), gettid(), gdrcopy->mh);
 	if (err) {
 		FI_WARN(&core_prov, FI_LOG_MR,
 			"gdr_unmap failed! error: %s\n",
 			strerror(err));
 		goto exit;
 	}
+    }
+    else {pthread_spin_unlock(&global_gdr_lock);}
 
 exit:
 	pthread_spin_unlock(&global_gdr_lock);

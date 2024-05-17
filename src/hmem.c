@@ -39,6 +39,8 @@
 #include "ofi_hmem.h"
 #include "ofi.h"
 #include "ofi_iov.h"
+#include <unistd.h>
+#include <stdio.h>
 
 bool ofi_hmem_disable_p2p = false;
 
@@ -799,6 +801,7 @@ int ofi_hmem_dev_register(enum fi_hmem_iface iface, const void *addr,
 
 int ofi_hmem_dev_unregister(enum fi_hmem_iface iface, uint64_t handle)
 {
+    printf("[%d, %d] ofi_hmem_dev_unregister() checkpoint 1 before unregister of handle=%p\n", getpid(), gettid(), &handle);
 	return hmem_ops[iface].dev_unregister(handle);
 }
 
